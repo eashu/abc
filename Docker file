@@ -1,0 +1,65 @@
+FROM dtfni-docker.artifactory.coxautoinc.com/apps/centos/python:3.6-e12b962
+
+WORKDIR /app
+
+# ------------------------------------------------------------------------------------------------
+COPY Makefile /app/Makefile
+COPY config/* /etc/apps/bootstrap.d/
+
+# ------------------------------------------------------------------------------------------------
+# Use docker pip configuration
+ARG PIP_FILE=docker.pip.conf
+COPY $PIP_FILE /etc/pip.conf
+
+# ------------------------------------------------------------------------------------------------
+# install requirements but dont copy code yet
+COPY requirements.txt /app/requirements.txt
+RUN make install
+
+# ------------------------------------------------------------------------------------------------
+# Run generic configs which dont require dt code but require dt deps installed
+RUN DTCONFIG_ALLOW_ROOT=True make setup
+
+# ------------------------------------------------------------------------------------------------
+# Copy rest of the code
+COPY . /app
+
+# ------------------------------------------------------------------------------------------------
+# Set Env variables
+ENV DJANGO_SETTINGS_MODULE='leadservice.settings' \
+    ENVIRONMENT_NAME='Docker' \
+    DEPLOY_ENVIRONMENT='docker' \
+    DEBUG=True \
+    \
+    RUN_TEST=false \
+    RUN_UWSGI=true \
+    \
+    UWSGI_WSGI_FILE=leadservice/wsgi.py \
+    UWSGI_HTTP=:6055 \
+    UWSGI_MASTER=1 \
+    UWSGI_PROCESSES=4 \
+    UWSGI_THREADS=2 \
+    UWSGI_HARAKIRI_TIME=30 \
+    UWSGI_MAX_REQUESTS=10000 \
+    \
+    VAULT_ADDR=http://vault:8200/v1 \
+    VAULT_TOKEN=root \
+    VAULT_NAMESPACE=local \
+    VAULT_DB_LEAD_CREDS_PATH=secret/data/db_lead/ \
+    VAULT_DB_DEAL_CREDS_PATH=secret/data/db_deal/ \
+    \
+    LEAD_DATABASE_HOST=somedb.com \
+    LEAD_DATABASE_PORT=1521 \
+    LEAD_DATABASE_SERVICE_NAME=drssvc \
+    DEAL_DATA_FEATURE_TOGGLE=true \
+    DEAL_DATA_API_URL=http://dt2dpws:8097/aws/api/deal-data/v1/deals/leads \
+    \
+    AWS_MIGRATION_FEATURE_TOGGLE=false \
+    DD_API_URL_SECRET_NAME=deal_data_api_url \
+    DD_API_KEY_SECRET_NAME=deal_data_api_key \
+    DB_LEAD_USER_SECRET_NAME=leads_db_user \
+    DB_LEAD_PASS_SECRET_NAME=leads_db_pass
+
+HEALTHCHECK CMD curl --fail http://localhost:6055/lb_healthcheck/ || exit 1
+
+EXPOSE 6055:6055
