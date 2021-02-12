@@ -1,0 +1,53 @@
+@echo on
+REM Up Log Name incorporating today's date and time
+	FOR /F "eol=; tokens=1-4 delims=/, " %%i in ('date/t') do set YYYYMMDD=%%l%%j%%k
+	FOR /F "eol=; tokens=1-4 delims=:, " %%i in ('time/t') do set TIME=%%i%%j%%k
+REM	SET DT_Package=2013-03-02
+	SET DT_Package=2021-01-25
+	SET DT_COPY_LOG=.\CopyPackage-%DT_Package%_%YYYYMMDD%-%TIME%.log
+
+Echo Copying necessary files to every new DR Server > %DT_COPY_LOG%
+now >> %DT_COPY_LOG%
+echo Clear any existing J: mapping >> %DT_COPY_LOG%
+net use j: /del >> %DT_COPY_LOG%
+
+:servers
+FOR /F "tokens=1-2* delims= " %%i in (servers.txt) do call :copyfiles %%i
+net use j: /del >> %DT_COPY_LOG%
+echo last line >> %DT_COPY_LOG%
+echo -------------------------------------------- >> %DT_COPY_LOG%
+
+echo Done >> %DT_COPY_LOG%
+now >> %DT_COPY_LOG%
+
+exit
+
+:copyfiles
+echo Body of script - clear any existing J: mapping >> %DT_COPY_LOG%
+net use j: /del >> %DT_COPY_LOG%
+net use k: /del >> %DT_COPY_LOG%
+
+net use j: \\%1\d$  PASSWORD /user:USERNAME >> %DT_COPY_LOG%
+net use k: \\%1\c$  PASWORD /user:USERNAME >> %DT_COPY_LOG%
+net use j: >> %DT_COPY_LOG%
+net use k: >> %DT_COPY_LOG%
+
+
+
+
+
+Echo Copying necessary files to every new DR Server >> %DT_COPY_LOG%
+
+robocopy D:\Inetpub\wwwroot\AMNSOA\Contracting \\%1\D$\Inetpub\wwwroot\AMNSOA\Contracting *.* /COPYALL /XJ /MT:8 /E /IT /LOG+:%DT_COPY_LOG%
+
+REM robocopy D:\inetpub\wwwroot\CommonCustomer\bin\  \\%1\D$\inetpub\wwwroot\CommonCustomer\bin\ *.* /COPYALL /XJ /MT:8 /E /IT /LOG+:%DT_COPY_LOG% 
+
+REM robocopy D:\installscripts\CodeDeployment\asp-Deployment\ \\%1\d$\installscripts\CodeDeployment\asp-Deployment\ *.* /COPYALL /MT:8 /XJ /E /IT /LOG+:%DT_COPY_LOG%
+REM robocopy D:\inetpub\wwwroot\Bin\ \\%1\d$\inetpub\wwwroot\Bin\ *.* /COPYALL /XJ /MT:8 /E /IT /LOG+:%DT_COPY_LOG%
+REM robocopy D:\Dealertrack\parameter\ \\%1\d$\Dealertrack\parameter\ *.* /COPYALL /XJ /E /IT /LOG+:%DT_COPY_LOG%
+
+
+
+
+net use j: /del >> %DT_COPY_LOG%
+echo -------------------------------------------- >> %DT_COPY_LOG%
