@@ -1,0 +1,27 @@
+version: '2.1'
+
+services:
+  api:
+    extends:
+      file: docker-compose-base.yml
+      service: api
+    ports:
+      - "6055:6055"
+    environment:
+      - RUN_UWSGI=false
+    depends_on:
+      vault:
+        condition: service_healthy
+    volumes:
+      - .:/app
+#      - ../dt/dtplatform/dtplatform:/usr/local/lib/python3.6/site-packages/dtplatform
+
+  vault:
+    extends:
+      file: docker-compose-base.yml
+      service: vault
+
+  dt2redis:
+    extends:
+      file: docker-compose-base.yml
+      service: dt2redis
