@@ -1,0 +1,48 @@
+version: '2.1'
+
+services:
+  api:
+    build: .
+    hostname: api
+    environment:
+      - SQLTAP_DISABLE_FORCE=True
+      - WERKZEUG_DEBUG_PIN=1234
+      - NO_MONGO=True
+      - DJANGO_SETTINGS_MODULE=leadservice.settings
+      - ENVIRONMENT_NAME=Docker
+      - DEPLOY_ENVIRONMENT=docker
+      - DEBUG=True
+      - RUN_TEST=false
+      - RUN_UWSGI=false
+      - UWSGI_WSGI_FILE=leadservice/wsgi.py
+      - UWSGI_HTTP=:6055
+      - UWSGI_MASTER=1
+      - UWSGI_PROCESSES=4
+      - UWSGI_THREADS=2
+      - UWSGI_HARAKIRI_TIME=30
+      - UWSGI_MAX_REQUESTS=10000
+      - VAULT_ADDR=http://vault:8200/v1
+      - VAULT_TOKEN=root
+      - VAULT_NAMESPACE=local
+      - VAULT_DB_LEAD_CREDS_PATH=secret/data/db_lead/
+      - VAULT_DB_DEAL_CREDS_PATH=secret/data/db_deal/
+      - LEAD_DATABASE_HOST=sdsexada-scan.dev-data.qts.fni
+      - LEAD_DATABASE_PORT=1521
+      - LEAD_DATABASE_SERVICE_NAME=drssvc
+      - DEAL_DATA_FEATURE_TOGGLE=true
+      - DEAL_DATA_API_URL=http://dt2dpws.devint1.qts.fni:8097/aws/api/deal-data/v1/deals/leads
+
+  vault:
+    image: dtfni-docker.artifactory.coxautoinc.com/apps/platform/vault-local:latest
+    hostname: vault
+    environment:
+      - VAULT_TOKEN=root
+      - VAULT_DB_LEAD_USERNAME_KEY=/secret/db_lead/username
+      - VAULT_DB_LEAD_USERNAME_VALUE=xtra
+      - VAULT_DB_LEAD_PASSWORD_KEY=/secret/db_lead/password
+      - VAULT_DB_LEAD_PASSWORD_VALUE=5pecial5
+
+  dt2redis:
+    build:
+      context: .
+      dockerfile: Dockerfile.redis
